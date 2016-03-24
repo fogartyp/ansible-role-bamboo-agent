@@ -9,21 +9,21 @@
   register: settings_exists
 
 #- debug:
-#    msg: "{{ settings_exists }}"
+#    msg: {{ settings_exists }}
 
 - uri:
-    url: http://"{{ CONF_DOWNLOAD_URL }}""{{ CONF_PAGE_ID }}"/settings.xml
+    url: "http://{{ CONF_DOWNLOAD_URL }}{{ CONF_PAGE_ID }}/settings.xml"
     method: GET
     follow_redirects: all
     return_content: yes
     HEADER_Content-Type: "text/xml"
-    HEADER_Authorization: "Basic "{{ CONF_PASS }}""
+    HEADER_Authorization: Basic "{{ CONF_PASS }}"
     dest: ~/.m2/settings.xml
   register: settings_out
   when: settings_exists.stat.exists == false
 
  #- debug:
- #    msg: "{{ settings_out }}"
+ #    msg: {{ settings_out }}
 
 
 #- file: path=DOWNLOAD_DIR_HERE state=directory mode=0755
@@ -31,32 +31,23 @@
   register: bamboo_jar_exists
 
 #- debug:
-#    msg: "{{ bamboo_jar_exists }}"
+#    msg: {{ bamboo_jar_exists }}
 
-- uri:
-    url: http://"{{ CONF_DOWNLOAD_URL }}""{{ CONF_PAGE_ID }}"/"{{ AGENT_NAME }}".jar
-    method: GET
-    follow_redirects: all
-    return_content: yes
-    HEADER_Content-Type: "application/jar"
-    HEADER_Authorization: "Basic "{{ CONF_PASS }}""
-    dest: ~/"{{ AGENT_NAME }}".jar
+
+- get_url:
+    url: https://{{ ATLASSIAN_USER }}:{{ ATLASSIAN_PASS }}@{{ BAMBOO_URL }}{{ AGENT_NAME }}.jar
+    dest: ~/{{ AGENT_NAME }}.jar
+    validate_certs: no
   when: bamboo_jar_exists.stat.exists == false
 
-#- get_url:
-#    url: https://"{{ ATLASSIAN_USER }}":"{{ ATLASSIAN_PASS }}"@"{{ BAMBOO_URL }}""{{ AGENT_NAME }}".jar
-#    dest: ~/"{{ AGENT_NAME }}".jar
-#    validate_certs: no
-#  when: bamboo_jar_exists.stat.exists == false
-
-- shell: java -jar ~/"{{ AGENT_NAME }}".jar https://"{{ BAMBOO_URL }}" status
+- shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} status
   register: agent_status
   ignore_errors: yes
 
 #- debug:
-#    msg: "{{ agent_status }}"
+#    msg: {{ agent_status }}
 
-- shell: java -jar ~/"{{ AGENT_NAME }}".jar https://"{{ BAMBOO_URL }}" install -t "{{ BAMBOO_SHA }}"
+- shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} install -t {{ BAMBOO_SHA }}
   when: bamboo_jar_exists.stat.exists == false
 
 # Copy bamboo capabilities properties file.
@@ -66,6 +57,6 @@
     mode: 0644
 #  when: bamboo_jar_exists.stat.exists == false
 
-- shell: java -jar ~/"{{ AGENT_NAME }}".jar https://"{{ BAMBOO_URL }}" stop
+- shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} stop
 
-- shell: java -jar ~/"{{ AGENT_NAME }}".jar https://"{{ BAMBOO_URL }}" start -t "{{ BAMBOO_SHA }}"
+- shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} start -t {{ BAMBOO_SHA }}
