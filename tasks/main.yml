@@ -1,25 +1,4 @@
 ---
-
-# Copy Maven script to set Maven Vars.
-#- copy:
-#    src: maven.sh
-#    dest: /etc/profile.d/maven.sh
-#    owner: root
-#    group: root
-#    mode: 0644
-#  become: yes
-#  become_user: root
-
-# Copy Java script to set Java Vars.
-#- copy:
-#    src: java.sh
-#    dest: /etc/profile.d/java.sh
-#    owner: root
-#    group: root
-#    mode: 0644
-#  become: yes
-#  become_user: root
-
 # Retrieve settings file for maven build.
 - file:
     path: ~/.m2/
@@ -32,50 +11,27 @@
 #- debug:
 #    msg: "{{ settings_exists }}"
 
-#- get_url:
-#    url: https://zafindev.atlassian.net/wiki/download/attachments/622595/settings.xml
-#    dest: ~/.m2/settings.xml
-#    url_username: "{{ ATLASSIAN_USER }}"
-#    url_password: "{{ ATLASSIAN_PASS }}"
-#  register: settings_out
-
-#- uri:
-#    url: http://zafindev.atlassian.net/wiki/download/attachments/622595/settings.xml
-#    method: GET
-#    user: "{{ ATLASSIAN_USER }}"
-#    password: "{{ ATLASSIAN_PASS }}"
-#    follow_redirects: all
-#    return_content: yes
-#    dest: ~/.m2/settings.xml
-#  register: settings_out
-#  when: settings_exists.stat.exists == false
-
-#- debug:
-#    msg: "{{ settings_out }}"
-
-
 #- file: path=DOWNLOAD_DIR_HERE state=directory mode=0755
-- stat: path=~/atlassian-bamboo-agent-installer-5.10-OD-15-001.jar
+- stat: path=~/"{{ AGENT_NAME }}".jar
   register: bamboo_jar_exists
 
 #- debug:
 #    msg: "{{ bamboo_jar_exists }}"
 
-
 - get_url:
-    url: https://"{{ ATLASSIAN_USER }}":"{{ ATLASSIAN_PASS }}"@zafindev.atlassian.net/builds/agentServer/agentInstaller/atlassian-bamboo-agent-installer-5.10-OD-15-001.jar
-    dest: ~/atlassian-bamboo-agent-installer-5.10-OD-15-001.jar
+    url: https://"{{ ATLASSIAN_USER }}":"{{ ATLASSIAN_PASS }}"@"{{ BAMBOO_URL }}""{{ AGENT_NAME }}".jar
+    dest: ~/"{{ AGENT_NAME }}".jar
     validate_certs: no
   when: bamboo_jar_exists.stat.exists == false
 
-- shell: java -jar ~/atlassian-bamboo-agent-installer-5.10-OD-15-001.jar https://zafindev.atlassian.net/builds/agentServer/ status
+- shell: java -jar ~/"{{ AGENT_NAME }}".jar https://"{{ BAMBOO_URL }}" status
   register: agent_status
   ignore_errors: yes
 
 #- debug:
 #    msg: "{{ agent_status }}"
 
-- shell: java -jar ~/atlassian-bamboo-agent-installer-5.10-OD-15-001.jar https://zafindev.atlassian.net/builds/agentServer/ install -t 0ef4443fecfb72fef06bc1a4fe437d8c2254e1e6
+- shell: java -jar ~/"{{ AGENT_NAME }}".jar https://"{{ BAMBOO_URL }}" install -t "{{ BAMBOO_SHA }}"
   when: bamboo_jar_exists.stat.exists == false
 
 # Copy bamboo capabilities properties file.
@@ -85,6 +41,6 @@
     mode: 0644
 #  when: bamboo_jar_exists.stat.exists == false
 
-- shell: java -jar ~/atlassian-bamboo-agent-installer-5.10-OD-15-001.jar https://zafindev.atlassian.net/builds/agentServer/ stop
+- shell: java -jar ~/"{{ AGENT_NAME }}".jar https://"{{ BAMBOO_URL }}" stop
 
-- shell: java -jar ~/atlassian-bamboo-agent-installer-5.10-OD-15-001.jar https://zafindev.atlassian.net/builds/agentServer/ start -t 0ef4443fecfb72fef06bc1a4fe437d8c2254e1e6
+- shell: java -jar ~/"{{ AGENT_NAME }}".jar https://"{{ BAMBOO_URL }}" start -t "{{ BAMBOO_SHA }}"
