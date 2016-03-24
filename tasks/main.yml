@@ -1,17 +1,21 @@
 ---
 # Retrieve settings file for maven build.
-- file:
+- name: Creating Maven home ".m2" Directory
+  file:
     path: ~/.m2/
     state: directory
     mode: 0755
 
-- stat: path=~/.m2/settings.xml
+- name: Checking for settings.xml file in Maven ".m2" Directory
+  stat: path=~/.m2/settings.xml
   register: settings_exists
 
-#- debug:
+#- name: Print Registered Variable
+#  debug:
 #    msg: {{ settings_exists }}
 
-- uri:
+- name: Getting Settings.xml Artifact
+  uri:
     url: "http://{{ CONF_DOWNLOAD_URL }}{{ CONF_PAGE_ID }}/settings.xml"
     method: GET
     follow_redirects: all
@@ -22,49 +26,60 @@
   register: settings_out
   when: settings_exists.stat.exists == false
 
- #- debug:
- #    msg: {{ settings_out }}
+#- name: Print Registered Variable
+#  debug:
+#    msg: {{ settings_out }}
 
 
 #- file: path=DOWNLOAD_DIR_HERE state=directory mode=0755
-- stat: path=~/"{{ AGENT_NAME }}".jar
+- name: Checking for Agent File
+  stat: path=~/"{{ AGENT_NAME }}".jar
   register: bamboo_jar_exists
 
-#- debug:
+#- name: Print Registered Variable
+#  debug:
 #    msg: {{ bamboo_jar_exists }}
 
-- uri:
-    url: "http://{{ BAMBOO_AGENT_URL }}{{ AGENT_NAME }}.jar"
-    method: GET
-    follow_redirects: all
-    return_content: yes
-    HEADER_Content-Type: application/octet-stream
-    HEADER_Authorization: Basic "{{ CONF_PASS }}"
-    dest: ~/{{ AGENT_NAME }}.jar
-
-#- get_url:
-#    url: https://{{ ATLASSIAN_USER }}:{{ ATLASSIAN_PASS }}@{{ BAMBOO_AGENT_URL }}{{ AGENT_NAME }}.jar
+# Should work in Ansible 2.0
+#- name: Getting Agent Artifact
+#  uri:
+#    url: "http://{{ BAMBOO_AGENT_URL }}{{ AGENT_NAME }}.jar"
+#    method: GET
+#    follow_redirects: all
+#    return_content: yes
+#    HEADER_Content-Type: application/octet-stream
+#    HEADER_Authorization: Basic "{{ CONF_PASS }}"
 #    dest: ~/{{ AGENT_NAME }}.jar
-#    validate_certs: no
-#  when: bamboo_jar_exists.stat.exists == false
 
-- shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} status
+- name: Getting Agent Artifact
+  get_url:
+    url: https://{{ ATLASSIAN_USER }}:{{ ATLASSIAN_PASS }}@{{ BAMBOO_AGENT_URL }}{{ AGENT_NAME }}.jar
+    dest: ~/{{ AGENT_NAME }}.jar
+    validate_certs: no
+  when: bamboo_jar_exists.stat.exists == false
+
+- name: Reporting Status of Agent
+  shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} status
   register: agent_status
   ignore_errors: yes
 
-#- debug:
+#- name: Print Registered Variable
+#  debug:
 #    msg: {{ agent_status }}
 
-- shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} install -t {{ BAMBOO_SHA }}
+- name: If Get Agent Artifact was Downloaded; Installing Agent to Server
+  shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} install -t {{ BAMBOO_SHA }}
   when: bamboo_jar_exists.stat.exists == false
 
-# Copy bamboo capabilities properties file.
-- copy:
+- name: Copying Properties File to Install "Bin" Directory to Force Agent Capabilities
+  copy:
     src: bamboo-capabilities.properties
     dest: ~/bamboo-agent-home/bin/bamboo-capabilities.properties
     mode: 0644
-#  when: bamboo_jar_exists.stat.exists == false
+  when: bamboo_jar_exists.stat.exists == false
 
-- shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} stop
+- name: Stopping Agent
+  shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} stop
 
-- shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} start -t {{ BAMBOO_SHA }}
+- name: Starting Agent
+  shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} start -t {{ BAMBOO_SHA }}
