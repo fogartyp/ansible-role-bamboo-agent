@@ -11,6 +11,21 @@
 #- debug:
 #    msg: "{{ settings_exists }}"
 
+- uri:
+    url: http://"{{ CONF_DOWNLOAD_URL }}""{{ CONF_PAGE_ID }}"/settings.xml
+    method: GET
+    follow_redirects: all
+    return_content: yes
+    HEADER_Content-Type: "text/xml"
+    HEADER_Authorization: "Basic "{{ CONF_PASS }}""
+    dest: ~/.m2/settings.xml
+  register: settings_out
+  when: settings_exists.stat.exists == false
+
+ #- debug:
+ #    msg: "{{ settings_out }}"
+
+
 #- file: path=DOWNLOAD_DIR_HERE state=directory mode=0755
 - stat: path=~/"{{ AGENT_NAME }}".jar
   register: bamboo_jar_exists
@@ -18,11 +33,21 @@
 #- debug:
 #    msg: "{{ bamboo_jar_exists }}"
 
-- get_url:
-    url: https://"{{ ATLASSIAN_USER }}":"{{ ATLASSIAN_PASS }}"@"{{ BAMBOO_URL }}""{{ AGENT_NAME }}".jar
+- uri:
+    url: http://"{{ CONF_DOWNLOAD_URL }}""{{ CONF_PAGE_ID }}"/"{{ AGENT_NAME }}".jar
+    method: GET
+    follow_redirects: all
+    return_content: yes
+    HEADER_Content-Type: "application/jar"
+    HEADER_Authorization: "Basic "{{ CONF_PASS }}""
     dest: ~/"{{ AGENT_NAME }}".jar
-    validate_certs: no
   when: bamboo_jar_exists.stat.exists == false
+
+#- get_url:
+#    url: https://"{{ ATLASSIAN_USER }}":"{{ ATLASSIAN_PASS }}"@"{{ BAMBOO_URL }}""{{ AGENT_NAME }}".jar
+#    dest: ~/"{{ AGENT_NAME }}".jar
+#    validate_certs: no
+#  when: bamboo_jar_exists.stat.exists == false
 
 - shell: java -jar ~/"{{ AGENT_NAME }}".jar https://"{{ BAMBOO_URL }}" status
   register: agent_status
