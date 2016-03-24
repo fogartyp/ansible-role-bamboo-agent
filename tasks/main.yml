@@ -33,12 +33,20 @@
 #- debug:
 #    msg: {{ bamboo_jar_exists }}
 
-
-- get_url:
-    url: https://{{ ATLASSIAN_USER }}:{{ ATLASSIAN_PASS }}@{{ BAMBOO_AGENT_URL }}{{ AGENT_NAME }}.jar
+- uri:
+    url: "http://{{ BAMBOO_AGENT_URL }}{{ AGENT_NAME }}.jar"
+    method: GET
+    follow_redirects: all
+    return_content: yes
+    HEADER_Content-Type: application/octet-stream
+    HEADER_Authorization: Basic "{{ CONF_PASS }}"
     dest: ~/{{ AGENT_NAME }}.jar
-    validate_certs: no
-  when: bamboo_jar_exists.stat.exists == false
+
+#- get_url:
+#    url: https://{{ ATLASSIAN_USER }}:{{ ATLASSIAN_PASS }}@{{ BAMBOO_AGENT_URL }}{{ AGENT_NAME }}.jar
+#    dest: ~/{{ AGENT_NAME }}.jar
+#    validate_certs: no
+#  when: bamboo_jar_exists.stat.exists == false
 
 - shell: java -jar ~/{{ AGENT_NAME }}.jar https://{{ BAMBOO_URL }} status
   register: agent_status
