@@ -14,6 +14,12 @@
 #  debug:
 #    msg: {{ settings_exists }}
 
+- easy_install: name=pip
+
+- name: pip httplib2
+  # ansible uri module requires httplib2
+  pip: name=httplib2 extra_args="--user"
+
 - name: Getting Settings.xml Artifact
   uri:
     url: "http://{{ CONF_DOWNLOAD_URL }}{{ CONF_PAGE_ID }}/settings.xml"
